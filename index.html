@@ -6,7 +6,43 @@
 <title>VP Bán Hàng BB — Quản Lý Kinh Doanh</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
+/* --- CSS CHO MENU RESPONSIVE (ĐIỆN THOẠI) --- */
+
+/* Nút bấm mở menu (Mặc định ẩn trên máy tính) */
+.menu-toggle {
+    display: none;
+    background: var(--red); /* Sử dụng màu đỏ có sẵn trong :root của bạn */
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 10px;
+}
+
+/* Cấu hình khi chuyển sang màn hình điện thoại */
+@media screen and (max-width: 768px) {
+    .menu-toggle {
+        display: block; /* Hiện nút ba gạch trên điện thoại */
+    }
+
+    /* Giả định thanh menu/sidebar của bạn có class hoặc id cần ẩn.
+       Bạn hãy thay thế `.main-menu` bằng tên class/id menu thực tế trong code của bạn */
+    .main-menu {
+        display: none; /* Mặc định ẩn menu đi */
+        flex-direction: column;
+        width: 100%;
+        background-color: var(--white);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    /* Class này sẽ được tự động thêm vào bằng JS để HIỆN menu khi bấm nút */
+    .main-menu.show {
+        display: flex;
+    }
+}
+  <style>
   :root {
     --red: #e8302a;
     --red-dark: #b52220;
@@ -32,7 +68,7 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
+<button class="menu-toggle" onclick="toggleMenu()">☰ Menu</button>
   body {
     font-family: 'Be Vietnam Pro', sans-serif;
     background: var(--gray-50);
@@ -386,7 +422,16 @@
   .inline-edit input { width: 60px; border: 1.5px solid var(--red); border-radius: 4px; padding: 3px 6px; font-family: 'JetBrains Mono',monospace; font-size: 12px; text-align: center; outline: none; }
 </style>
 </head>
-<body>
+<script>
+function toggleMenu() {
+    // Tìm đến thanh menu (hãy đổi .main-menu thành class/id thực tế của bạn nếu có)
+    var menu = document.querySelector('.main-menu');
+    
+    // Tự động bật/tắt class "show" để ẩn hoặc hiện menu
+    menu.classList.toggle('show');
+}
+</script>
+  <body>
 
 <!-- SIDEBAR -->
 <nav class="sidebar">
