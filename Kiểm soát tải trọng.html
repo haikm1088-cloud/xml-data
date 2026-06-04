@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quản lý hàng hóa</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary:#ffffff; --bg-secondary:#f5f5f4; --bg-tertiary:#efede8;
+      --bg-danger:#fcebeb;
+      --text-primary:#1a1a1a; --text-secondary:#6b6b6b; --text-tertiary:#aaa;
+      --text-danger:#a32d2d;
+      --border:rgba(0,0,0,0.12); --border-md:rgba(0,0,0,0.22);
+      --radius-md:8px; --radius-lg:12px;
+      --accent:#1a1a1a; --accent-fg:#ffffff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary:#1c1c1c; --bg-secondary:#252525; --bg-tertiary:#2e2e2e;
+        --bg-danger:#3a1a1a;
+        --text-primary:#f0f0f0; --text-secondary:#a0a0a0; --text-tertiary:#666;
+        --text-danger:#f09595;
+        --border:rgba(255,255,255,0.1); --border-md:rgba(255,255,255,0.2);
+        --accent:#f0f0f0; --accent-fg:#1c1c1c;
+      }
+    }
+    body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg-tertiary); color:var(--text-primary); min-height:100vh; font-size:14px; -webkit-tap-highlight-color: transparent; }
+    header { background:var(--bg-primary); border-bottom:0.5px solid var(--border); padding:0 1.5rem; position:sticky; top:0; z-index:50; }
+    .header-inner { max-width:960px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; height:56px; }
+    .app-title { font-size:16px; font-weight:600; display:flex; align-items:center; gap:8px; }
+    .app-title svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; }
+    .tabs { display:flex; }
+    .tab-btn { padding:0 20px; height:56px; font-size:13px; font-weight:500; background:none; border:none; border-bottom:2px solid transparent; cursor:pointer; color:var(--text-secondary); display:flex; align-items:center; gap:6px; transition:all .15s; white-space:nowrap; -webkit-appearance: none; }
+    .tab-btn.active { color:var(--text-primary); border-bottom-color:var(--text-primary); }
+    .tab-btn:hover:not(.active) { color:var(--text-primary); background:var(--bg-secondary); }
+    .tab-btn svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; }
+    main { max-width:960px; margin:0 auto; padding:1.5rem; position: relative; z-index: 1; }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+    .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+    .section-title { font-size:15px; font-weight:600; }
+    
+    /* Ép iOS luôn nhận diện đây là vùng bấm được */
+    .btn-primary, .btn-outline, .btn-cancel, .btn-save, .btn-edit, .btn-del, .tab-btn {
+      cursor: pointer !important;
+      touch-action: manipulation;
+    }
+
+    .btn-primary { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; font-size:13px; font-weight:500; background:var(--accent); color:var(--accent-fg); border:none; border-radius:var(--radius-md); transition:opacity .15s; font-family:inherit; -webkit-appearance: none; }
+    .btn-primary:hover { opacity:.82; }
+    .btn-primary svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.5; }
+    
+    .btn-outline { display:inline-flex; align-items:center; gap:6px; padding:7px 13px; font-size:12px; font-weight:500; background:none; color:var(--text-secondary); border:0.5px solid var(--border-md); border-radius:var(--radius-md); font-family:inherit; transition:all .15s; -webkit-appearance: none; }
+    .btn-outline:hover { background:var(--bg-secondary); color:var(--text-primary); }
+    .btn-outline svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; }
+    
+    .save-banner { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:.875rem 1.25rem; margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+    .save-banner-info { display:flex; align-items:center; gap:10px; color:var(--text-secondary); font-size:13px; }
+    .save-banner-info svg { width:18px; height:18px; fill:none; stroke:var(--text-tertiary); stroke-width:2; flex-shrink:0; }
+    .save-banner-info strong { color:var(--text-primary); }
+    .save-banner-actions { display:flex; gap:8px; flex-shrink:0; }
+    .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:1.25rem; }
+    .stat-card { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.25rem; }
+    .stat-label { font-size:11px; color:var(--text-tertiary); font-weight:500; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+    .stat-val { font-size:22px; font-weight:700; }
+    .table-wrap { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; -webkit-overflow-scrolling: touch; }
+    table { width:100%; border-collapse:collapse; }
+    thead { background:var(--bg-secondary); }
+    th { padding:10px 14px; text-align:left; font-size:11px; font-weight:600; color:var(--text-secondary); letter-spacing:.04em; text-transform:uppercase; border-bottom:0.5px solid var(--border); }
+    td { padding:11px 14px; border-bottom:0.5px solid var(--border); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--bg-secondary); }
+    .code-badge { display:inline-block; padding:2px 8px; background:var(--bg-secondary); color:var(--text-secondary); border-radius:4px; font-family:'Courier New',monospace; font-size:12px; font-weight:600; }
+    
+    .btn-edit { padding:5px 10px; font-size:12px; background:none; border:0.5px solid var(--border-md); border-radius:var(--radius-md); color:var(--text-secondary); display:inline-flex; align-items:center; gap:4px; transition:all .15s; margin-right:4px; -webkit-appearance: none; }
+    .btn-edit:hover { background:var(--bg-secondary); color:var(--text-primary); }
+    .btn-edit svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; }
+    
+    .btn-del { padding:5px 10px; font-size:12px; background:none; border:0.5px solid var(--border-md); border-radius:var(--radius-md); color:var(--text-secondary); display:inline-flex; align-items:center; gap:4px; transition:all .15s; -webkit-appearance: none; }
+    .btn-del:hover { background:var(--bg-danger); color:var(--text-danger); border-color:transparent; }
+    .btn-del svg { width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:2; }
+    
+    .empty-state { padding:3rem 1rem; text-align:center; color:var(--text-tertiary); font-size:13px; }
+    .empty-state svg { width:32px; height:32px; display:block; margin:0 auto 8px auto; opacity:.4; fill:none; stroke:currentColor; stroke-width:2; }
+    
+    /* THAY ĐỔI QUAN TRỌNG: Loại bỏ hoàn toàn lỗi xung đột hiển thị trên iOS */
+    .modal-overlay { 
+      position:fixed; 
+      top:0; left:0; width:100%; height:100%;
+      background:rgba(0,0,0,0.4); 
+      z-index:9999; 
+      display:flex;
+      align-items:center; 
+      justify-content:center; 
+      padding:1rem;
+    }
+    
+    .modal { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:1.5rem; width:420px; max-width:100%; box-shadow:0 8px 32px rgba(0,0,0,0.15); }
+    .modal-title { font-size:15px; font-weight:600; margin-bottom:1.25rem; display:flex; align-items:center; gap:8px; }
+    .modal-title svg { width:18px; height:18px; fill:none; stroke:var(--text-secondary); stroke-width:2; }
+    .modal-alert { padding:9px 13px; border-radius:var(--radius-md); font-size:13px; margin-bottom:1rem; display:none; align-items:center; gap:8px; background:var(--bg-danger); color:var(--text-danger); border:0.5px solid rgba(163,45,45,0.2); }
+    .modal-alert.show { display:flex; }
+    .modal-alert svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; flex-shrink:0; }
+    .form-group { margin-bottom:1rem; }
+    .form-group label { display:block; font-size:12px; font-weight:500; color:var(--text-secondary); margin-bottom:5px; }
+    .form-group input, .form-group select { width:100%; padding:9px 11px; font-size:13px; border:0.5px solid var(--border-md); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--text-primary); font-family:inherit; transition:border-color .15s,box-shadow .15s; -webkit-appearance: none; }
+    .form-group input:focus, .form-group select:focus { outline:none; border-color:var(--text-secondary); box-shadow:0 0 0 3px rgba(100,100,100,0.12); }
+    .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:1.25rem; }
+    
+    .btn-cancel { padding:8px 16px; font-size:13px; background:none; border:0.5px solid var(--border-md); border-radius:var(--radius-md); color:var(--text-secondary); font-family:inherit; transition:background .15s; -webkit-appearance: none; }
+    .btn-cancel:hover { background:var(--bg-secondary); }
+    .btn-save { padding:8px 20px; font-size:13px; font-weight:500; background:var(--accent); color:var(--accent-fg); border:none; border-radius:var(--radius-md); font-family:inherit; transition:opacity .15s; -webkit-appearance: none; }
+    .btn-save:hover { opacity:.82; }
+    
+    .card { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:1.25rem; margin-bottom:1.25rem; }
+    .card-title { font-size:13px; font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; margin-bottom:1rem; }
+    .add-row { display:grid; grid-template-columns:2fr 1fr auto; gap:10px; align-items:end; }
+    .add-row .form-group { margin-bottom:0; }
+    .info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:1rem; }
+    .info-chip { background:var(--bg-secondary); border-radius:var(--radius-md); padding:8px 12px; }
+    .info-chip-label { font-size:11px; color:var(--text-tertiary); margin-bottom:3px; font-weight:500; }
+    .info-chip-val { font-size:13px; font-weight:500; }
+    .total-bar { background:var(--bg-primary); border:0.5px solid var(--border); border-radius:var(--radius-lg); padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between; margin-top:1rem; }
+    .total-label { display:flex; align-items:center; gap:8px; font-size:14px; color:var(--text-secondary); }
+    .total-label svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; }
+    .total-val { font-size:28px; font-weight:700; display:flex; align-items:baseline; gap:6px; }
+    .total-unit { font-size:14px; font-weight:400; color:var(--text-secondary); }
+    .btn-rm { background:none; border:none; color:var(--text-tertiary); padding:4px 7px; border-radius:6px; display:inline-flex; align-items:center; transition:all .15s; }
+    .btn-rm:hover { color:var(--text-danger); background:var(--bg-danger); }
+    .btn-rm svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; }
+    .purchase-alert { padding:10px 14px; border-radius:var(--radius-md); font-size:13px; margin-bottom:1rem; background:var(--bg-danger); color:var(--text-danger); border:0.5px solid rgba(163,45,45,0.2); display:none; align-items:center; gap:8px; }
+    .purchase-alert.show { display:flex; }
+    .purchase-alert svg { width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:2; flex-shrink:0; }
+    .toast { position:fixed; bottom:1.5rem; right:1.5rem; background:#1a6b3a; color:#fff; padding:10px 18px; border-radius:var(--radius-md); font-size:13px; font-weight:500; display:flex; align-items:center; gap:8px; opacity:0; transform:translateY(12px); transition:opacity .2s,transform .2s; pointer-events:none; z-index:9999; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    .toast svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:2.5; }
+    @media (max-width:600px) {
+      main { padding:1rem; }
+      .add-row { grid-template-columns:1fr; gap:14px; }
+      .add-row button { width: 100%; justify-content: center; height: 40px !important; }
+      .info-grid { grid-template-columns:1fr 1fr; }
+      .stats-row { grid-template-columns:1fr; }
+      .tab-btn span { display:none; }
+      .tab-btn { padding:0 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="app-title">
+      <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21L4 16.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5M16 5.25l-8 4.5"/></svg> 
+      Quản lý hàng hóa
+    </div>
+    <div class="tabs">
+      <button id="btn-tab-catalog" class="tab-btn active" onclick="switchTab('catalog')">
+        <svg viewBox="0 0 24 24"><path d="M3.5 5.5h17M3.5 12h17M3.5 18.5h17"/></svg>
+        <span>Danh mục</span>
+      </button>
+      <button id="btn-tab-purchase" class="tab-btn" onclick="switchTab('purchase')">
+        <svg viewBox="0 0 24 24"><path d="M6 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M17 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M17 17h-11v-14h-2M6 5l14 1l-1 7h-13"/></svg>
+        <span>Mua hàng</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="tab-catalog" class="tab-panel active">
+
+    <div class="save-banner">
+      <div class="save-banner-info">
+        <svg viewBox="0 0 24 24"><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2M12 14a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M14 4v4h-4v-4"/></svg>
+        <span><strong>Lưu danh mục:</strong> Nhấn "Xuất file" để tải về máy. Lần sau mở app nhấn "Nhập file" để khôi phục.</span>
+      </div>
+      <div class="save-banner-actions">
+        <label class="btn-outline" style="cursor:pointer">
+          <svg viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2M7 9l5 -5l5 5M12 4v12"/></svg> Nhập file
+          <input type="file" id="file-import" accept=".json" style="display:none" onchange="importCatalog(event)">
+        </label>
+        <button class="btn-outline" onclick="exportCatalog()">
+          <svg viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2M7 11l5 5l5 -5M12 4v12"/></svg> Xuất file
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-label">Tổng mặt hàng</div><div class="stat-val" id="stat-total">0</div></div>
+      <div class="stat-card"><div class="stat-label">Tổng KL / đv (kg)</div><div class="stat-val" id="stat-weight">0</div></div>
+      <div class="stat-card"><div class="stat-label">Đơn vị phổ biến</div><div class="stat-val" id="stat-unit" style="font-size:16px">—</div></div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">Danh sách hàng hóa</div>
+      <button class="btn-primary" onclick="openAddModal()">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Thêm hàng
+      </button>
+    </div>
+
+    <div class="table-wrap" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th>Mã hàng</th><th>Tên hàng</th><th>Đơn vị</th><th>KL (kg)</th><th style="text-align:right">Thao tác</th></tr>
+        </thead>
+        <tbody id="catalog-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-purchase" class="tab-panel">
+    <div class="card">
+      <div class="card-title">Chọn hàng &amp; số lượng</div>
+      <div class="purchase-alert" id="purchase-alert">
+        <svg viewBox="0 0 24 24"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 9v4M12 16v.01"/></svg>
+        <span id="purchase-alert-msg"></span>
+      </div>
+      <div class="add-row">
+        <div class="form-group">
+          <label>Mã hàng</label>
+          <select id="sel-product" onchange="onProductSelect()"><option value="">-- Chọn mã hàng --</option></select>
+        </div>
+        <div class="form-group">
+          <label>Số lượng</label>
+          <input type="number" id="inp-qty" min="1" step="1" placeholder="Nhập SL">
+        </div>
+        <button class="btn-primary" onclick="addToCart()" style="height:38px">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Thêm
+        </button>
+      </div>
+      <div class="info-grid">
+        <div class="info-chip"><div class="info-chip-label">Tên hàng</div><div class="info-chip-val" id="info-name">—</div></div>
+        <div class="info-chip"><div class="info-chip-label">Đơn vị tính</div><div class="info-chip-val" id="info-unit">—</div></div>
+        <div class="info-chip"><div class="info-chip-label">Khối lượng / đv</div><div class="info-chip-val" id="info-weight">—</div></div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">Đơn hàng</div>
+      <button class="btn-cancel" onclick="clearCart()" style="display:flex;align-items:center;gap:4px;font-size:12px;padding:7px 12px;border-radius:8px;border:0.5px solid var(--border-md);background:none;font-family:inherit;color:var(--text-secondary)">
+        <svg style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;" viewBox="0 0 24 24"><path d="M4 7h16M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12M9 7V4a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3M10 12v5M14 12v5"/></svg> Xóa đơn
+      </button>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:1rem; overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th>Mã hàng</th><th>Tên hàng</th><th>ĐVT</th><th>Số lượng</th><th>KL/đv (kg)</th><th>Tổng KL (kg)</th><th></th></tr>
+        </thead>
+        <tbody id="cart-body"></tbody>
+      </table>
+    </div>
+
+    <div class="total-bar">
+      <div class="total-label">
+        <svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0M6 12h12l-1 7a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l-1 -7Z"/></svg>
+        Tổng khối lượng
+      </div>
+      <div class="total-val"><span id="total-weight">0</span><span class="total-unit">kg</span></div>
+    </div>
+  </div>
+</main>
+
+<div id="modal-container"></div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24"><path d="M5 12l5 5l10 -10"/></svg>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+  let products = [
+    { id:1, code:'SP001', name:'Gạo ST25',        unit:'Bao',   weight:50 },
+    { id:2, code:'SP002', name:'Đường cát trắng', unit:'Túi',   weight:5  },
+    { id:3, code:'SP003', name:'Muối iốt',        unit:'Gói',   weight:1  },
+    { id:4, code:'SP004', name:'Dầu ăn Neptune',  unit:'Thùng', weight:20 },
+  ];
+  let cart = [];
+  let editingId = null;
+  let nextId = 5;
+  let _toastTimer = null;
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  function exportCatalog() {
+    const blob = new Blob([JSON.stringify({ products, nextId }, null, 2)], { type:'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href:url, download:'danh-muc-hang-hoa.json' });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Đã xuất danh mục về máy!');
+  }
+
+  function importCatalog(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data.products)) throw 0;
+        products = data.products;
+        nextId   = data.nextId ?? (Math.max(0, ...products.map(p => p.id)) + 1);
+        renderCatalog();
+        showToast('Nhập thành công — ' + products.length + ' mặt hàng');
+      } catch { alert('File không đúng định dạng.'); }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  function switchTab(tab) {
+    document.getElementById('btn-tab-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('btn-tab-purchase').classList.toggle('active', tab === 'purchase');
+    document.getElementById('tab-catalog').classList.toggle('active', tab === 'catalog');
+    document.getElementById('tab-purchase').classList.toggle('active', tab === 'purchase');
+    if (tab === 'purchase') renderProductSelect();
+  }
+
+  function renderStats() {
+    document.getElementById('stat-total').textContent = products.length;
+    document.getElementById('stat-weight').textContent =
+      products.reduce((s, p) => s + p.weight, 0).toLocaleString('vi-VN', { maximumFractionDigits:2 });
+    const um = {}; products.forEach(p => { um[p.unit] = (um[p.unit]||0)+1; });
+    const top = Object.entries(um).sort((a,b) => b[1]-a[1])[0];
+    document.getElementById('stat-unit').textContent = top ? top[0] : '—';
+  }
+
+  function renderCatalog() {
+    renderStats();
+    const tbody = document.getElementById('catalog-body');
+    if (!products.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21L4 16.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5M12 12l-8-4.5M12 12l8-4.5"/></svg>Chưa có hàng hóa. Nhấn "Thêm hàng" để bắt đầu.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = products.map(p => `
+      <tr>
+        <td><span class="code-badge">${p.code}</span></td>
+        <td style="font-weight:500">${p.name}</td>
+        <td>${p.unit}</td>
+        <td>${p.weight.toLocaleString('vi-VN',{maximumFractionDigits:3})} kg</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn-edit" onclick="openEditModal(${p.id})"><svg viewBox="0 0 24 24"><path d="M4 20h4l10.5 -10.5a1.5 1.5 0 0 0 -4 -4l-10.5 10.5v4M13.5 6.5l4 4"/></svg> Sửa</button>
+          <button class="btn-del"  onclick="deleteProduct(${p.id})"><svg viewBox="0 0 24 24"><path d="M4 7h16M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/></svg></button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function deleteProduct(id) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    if (!confirm(`Xóa "${p.name}" khỏi danh mục?`)) return;
+    products = products.filter(x => x.id !== id);
+    cart     = cart.filter(c => c.productId !== id);
+    renderCatalog(); renderCart();
+    showToast(`Đã xóa: ${p.name}`);
+  }
+
+  function renderProductSelect() {
+    const sel = document.getElementById('sel-product');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">-- Chọn mã hàng --</option>' +
+      products.map(p => `<option value="${p.id}"${p.id==cur?' selected':''}>${p.code} — ${p.name}</option>`).join('');
+  }
+
+  function onProductSelect() {
+    const id = parseInt(document.getElementById('sel-product').value);
+    const p  = products.find(x => x.id === id);
+    document.getElementById('info-name').textContent   = p ? p.name : '—';
+    document.getElementById('info-unit').textContent   = p ? p.unit : '—';
+    document.getElementById('info-weight').textContent = p ? p.weight.toLocaleString('vi-VN',{maximumFractionDigits:3})+' kg' : '—';
+    document.getElementById('purchase-alert').classList.remove('show');
+  }
+
+  function addToCart() {
+    const id  = parseInt(document.getElementById('sel-product').value);
+    const qty = parseFloat(document.getElementById('inp-qty').value);
+    const al  = document.getElementById('purchase-alert');
+    const alm = document.getElementById('purchase-alert-msg');
+    if (!id)           { alm.textContent='Vui lòng chọn mã hàng!';          al.classList.add('show'); return; }
+    if (!qty || qty<=0){ alm.textContent='Vui lòng nhập số lượng hợp lệ!';  al.classList.add('show'); return; }
+    al.classList.remove('show');
+    const p = products.find(x => x.id === id); if (!p) return;
+    const ex = cart.find(c => c.productId === id);
+    if (ex) { ex.qty += qty; }
+    else { cart.push({ productId:id, code:p.code, name:p.name, unit:p.unit, weight:p.weight, qty }); }
+    document.getElementById('inp-qty').value = '';
+    renderCart();
+  }
+
+  function removeFromCart(pid) { cart = cart.filter(c => c.productId !== pid); renderCart(); }
+
+  function clearCart() {
+    if (!cart.length) return;
+    if (!confirm('Xóa toàn bộ đơn hàng?')) return;
+    cart = []; renderCart();
+  }
+
+  function renderCart() {
+    const tbody = document.getElementById('cart-body');
+    if (!cart.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><svg viewBox="0 0 24 24"><path d="M6 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M17 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M17 17h-11v-14h-2M6 9h14M9 9v6M13 9v6M17 9v6"/></svg>Chưa có hàng nào trong đơn.</td></tr>';
+      document.getElementById('total-weight').textContent = '0'; return;
+    }
+    tbody.innerHTML = cart.map(c => {
+      const t = c.weight * c.qty;
+      return `<tr>
+        <td><span class="code-badge">${c.code}</span></td>
+        <td style="font-weight:500">${c.name}</td>
+        <td>${c.unit}</td>
+        <td>${c.qty.toLocaleString('vi-VN')}</td>
+        <td>${c.weight.toLocaleString('vi-VN',{maximumFractionDigits:3})}</td>
+        <td style="font-weight:600">${t.toLocaleString('vi-VN',{maximumFractionDigits:3})}</td>
+        <td><button class="btn-rm" onclick="removeFromCart(${c.productId})"><svg viewBox="0 0 24 24"><path d="M18 6l-12 12M6 6l12 12"/></svg></button></td>
+      </tr>`;
+    }).join('');
+    document.getElementById('total-weight').textContent =
+      cart.reduce((s,c) => s+c.weight*c.qty, 0).toLocaleString('vi-VN',{maximumFractionDigits:3});
+  }
+
+  /* GIẢI PHÁP ĐỘT PHÁ: Tạo và hủy thẳng Modal bằng Javascript để tránh lỗi treo cảm ứng của iOS */
+  function injectModalHTML(title, btnText, code='', name='', unit='', weight='', isEdit=false) {
+    const container = document.getElementById('modal-container');
+    container.innerHTML = `
+      <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal">
+          <div class="modal-title">
+            <svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21L4 16.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+            <span>${title}</span>
+          </div>
+          <div class="modal-alert" id="modal-alert">
+            <svg viewBox="0 0 24 24"><path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0M12 9v4M12 16v.01"/></svg>
+            <span id="modal-alert-msg"></span>
+          </div>
+          <div class="form-group"><label>Mã hàng *</label><input type="text" id="f-code" value="${code}" ${isEdit?'readonly style="opacity:0.55"':''} placeholder="VD: SP001"></div>
+          <div class="form-group"><label>Tên hàng *</label><input type="text" id="f-name" value="${name}" placeholder="VD: Gạo ST25"></div>
+          <div class="form-group"><label>Đơn vị tính *</label><input type="text" id="f-unit" value="${unit}" placeholder="VD: kg, thùng, bao..."></div>
+          <div class="form-group"><label>Khối lượng (kg) *</label><input type="number" id="f-weight" value="${weight}" placeholder="VD: 25" min="0" step="0.001"></div>
+          <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal()">Hủy</button>
+            <button class="btn-save" onclick="saveProduct()">${btnText}</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function openAddModal() {
+    editingId = null;
+    injectModalHTML('Thêm hàng hóa', 'Lưu hàng hóa', '', '', '', '', false);
+  }
+
+  function openEditModal(id) {
+    editingId = id;
+    const p = products.find(x => x.id === id); if (!p) return;
+    injectModalHTML('Sửa hàng hóa', 'Cập nhật', p.code, p.name, p.unit, p.weight, true);
+  }
+
+  function closeModal() { 
+    document.getElementById('modal-container').innerHTML = ''; 
+  }
+
+  function saveProduct() {
+    const code   = document.getElementById('f-code').value.trim().toUpperCase();
+    const name   = document.getElementById('f-name').value.trim();
+    const unit   = document.getElementById('f-unit').value.trim();
+    const weight = parseFloat(document.getElementById('f-weight').value);
+    const al     = document.getElementById('modal-alert');
+    const alm    = document.getElementById('modal-alert-msg');
+
+    if (!code || !name || !unit || isNaN(weight) || weight < 0) {
+      alm.textContent = 'Vui lòng điền đầy đủ và hợp lệ tất cả các trường!';
+      al.classList.add('show'); return;
+    }
+    if (editingId) {
+      const p = products.find(x => x.id === editingId);
+      p.name = name; p.unit = unit; p.weight = weight;
+      cart.forEach(c => { if (c.productId === editingId) { c.name=name; c.unit=unit; c.weight=weight; } });
+      renderCart();
+      showToast(`Đã cập nhật: ${name}`);
+    } else {
+      if (products.find(p => p.code === code)) {
+        alm.textContent = `Mã hàng "${code}" đã tồn tại!`;
+        al.classList.add('show'); return;
+      }
+      products.push({ id:nextId++, code, name, unit, weight });
+      showToast(`Đã thêm: ${name}`);
+    }
+    closeModal();
+    renderCatalog();
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  renderCatalog();
+  renderCart();
+</script>
+</body>
+</html>
